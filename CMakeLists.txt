@@ -15,3 +15,4 @@ set(POCO_LIBS        "${POCO_LIB_DIR}/libPocoNet.so"
 
 add_subdirectory(controller)
 add_subdirectory(sensor)
+add_subdirectory(manipulator)

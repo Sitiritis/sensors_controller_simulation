@@ -1,7 +1,11 @@
 #include "SensorDataConsumer.h"
 
 #include "Poco/DateTimeFormatter.h"
+
 #include <iostream>
+
+#include "DecisionNotification.h"
+#include "../common/DeathPillNotification.h"
 
 void SensorDataConsumer::start()
 {
@@ -14,6 +18,11 @@ void SensorDataConsumer::stop()
   _activity.wait(); // wait (block) until it actually stops
 }
 
+Decision SensorDataConsumer::getDecision() const
+{
+  return _decision.load();
+}
+
 void SensorDataConsumer::runActivity()
 {
   long long mean = 0;
@@ -23,33 +32,41 @@ void SensorDataConsumer::runActivity()
   while (!_activity.isStopped())
   {
     UInt32 curPayload;
-    _buffer.wait_dequeue(curPayload);
-    ++totalElements;
-    // https://dev.to/nestedsoftware/calculating-a-moving-average-on-streaming-data-5a7k
-    mean = mean + ((curPayload - mean) / totalElements);
+    if (_buffer.try_dequeue(curPayload))
+    {
+      ++totalElements;
+      // https://dev.to/nestedsoftware/calculating-a-moving-average-on-streaming-data-5a7k
+      mean = mean + ((curPayload - mean) / totalElements);
 //    std::cout
 //      << "Payload: " << curPayload << "\n"
 //      << "Total elements: " << totalElements << "\n"
 //      << "Intermediate mean: " << mean << "\n"
 //      << "Elements in queue: " << _buffer.size_approx() << "\n\n";
 
-    if (processingStartTime.elapsed() >= _decisionTime)
-    {
-      auto decision = Decision(Timestamp().utcTime(), mean >= 50);
-      _decision.store(decision, std::memory_order_release);
-      std::cout <<
-        "Mean: " << mean << "\n" <<
-        "Decision time: " <<
+      if (processingStartTime.elapsed() >= _decisionTime)
+      {
+        const Decision decision = Decision(Timestamp().utcTime(), mean >= 50);
+        _decision.store(decision, std::memory_order_release);
+        _decisionQueue.enqueueNotification(new DecisionNotification(decision));
+        std::cout <<
+          "Mean: " << mean << "\n" <<
+          "Decision time: " <<
           DateTimeFormatter::format(
-            Timestamp().fromUtcTime(decision.decisionTimestamp),
+            Timestamp::fromUtcTime(decision.decisionTimestamp),
             "%e.%n.%Y %H:%M:%s"
           )
           << "\n" <<
-        "Decision: " << decision.decision << "\n\n";
+          "Decision: " << decision.decision << "\n\n";
 
-      mean = 0;
-      totalElements = 0;
-      processingStartTime.update();
+        mean = 0;
+        totalElements = 0;
+        processingStartTime.update();
+      }
     }
+  }
+
+  for (int i = 0; i < _numberWorkers; ++i)
+  {
+    _decisionQueue.enqueueNotification(new DeathPillNotification());
   }
 }

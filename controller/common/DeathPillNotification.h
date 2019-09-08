@@ -1,0 +1,10 @@
+#ifndef SENSORS_CONTROLLER_SIMULATION_DEATHPILLNOTIFICATION_H
+#define SENSORS_CONTROLLER_SIMULATION_DEATHPILLNOTIFICATION_H
+
+#include "Poco/Notification.h"
+
+using namespace Poco;
+
+class DeathPillNotification: public Notification {};
+
+#endif //SENSORS_CONTROLLER_SIMULATION_DEATHPILLNOTIFICATION_H

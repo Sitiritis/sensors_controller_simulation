@@ -1,14 +1,14 @@
 #include "Poco/Net/TCPServer.h"
-#include "Poco/Net/SocketStream.h"
+#include "Poco/Net/StreamSocket.h"
 #include "Poco/Util/ServerApplication.h"
 #include "Poco/Util/IntValidator.h"
 #include "Poco/Util/RegExpValidator.h"
-#include "Poco/Thread.h"
 
 #include <iostream>
 
 #include "SensorTCPConnection/SensorTCPConnectionFactory.h"
 #include "SensorDataConsumer/SensorDataConsumer.h"
+#include "ManipulatorCommunicator/ManipulatorCommunicator.h"
 
 using namespace Poco;
 using namespace Poco::Util;
@@ -59,46 +59,46 @@ class ControllerApp: public ServerApplication
         .binding("port.sensorServer")
       );
 
-      options.addOption(
-        Option(
-          "api-port",
-          "a",
-          "Port on which the controller will be providing HTTPS API. The default is 7896.",
-          false
-        )
-        .argument("port", true)
-        .repeatable(false)
-        .validator(new IntValidator(1024, 65535))
-        .binding("port.api")
-      );
-
 //      options.addOption(
 //        Option(
-//          "manipulator-port",
-//          "m",
-//          "Manipulator port, where the decisions of the controller will be submitted. The default is 5698.",
+//          "api-port",
+//          "a",
+//          "Port on which the controller will be providing HTTPS API. The default is 7896.",
 //          false
 //        )
 //        .argument("port", true)
 //        .repeatable(false)
 //        .validator(new IntValidator(1024, 65535))
-//        .binding("port.manipulator")
+//        .binding("port.api")
 //      );
-//
-//      options.addOption(
-//        Option(
-//          "manipulator-host",
-//          "h",
-//          "Either host name or IP address of the manipulator, where the decisions of the controller will be submitted. The default is 127.0.0.1.",
-//          false
-//        )
-//        .argument("host", true)
-//        .repeatable(false)
-//        .validator(new RegExpValidator(
-//          R"(^(?:(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$)"
-//        ))
-//        .binding("host")
-//      );
+
+      options.addOption(
+        Option(
+          "manipulator-port",
+          "m",
+          "Manipulator port, where the decisions of the controller will be submitted. The default is 5698.",
+          false
+        )
+        .argument("port", true)
+        .repeatable(false)
+        .validator(new IntValidator(1024, 65535))
+        .binding("port.manipulator")
+      );
+
+      options.addOption(
+        Option(
+          "manipulator-host",
+          "h",
+          "Either host name or IP address of the manipulator, where the decisions of the controller will be submitted. The default is 127.0.0.1.",
+          false
+        )
+        .argument("host", true)
+        .repeatable(false)
+        .validator(new RegExpValidator(
+          R"(^(?:(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$)"
+        ))
+        .binding("host.manipulator")
+      );
     }
 
     virtual int main(const std::vector<std::string>& args) override
@@ -111,16 +111,46 @@ class ControllerApp: public ServerApplication
       const Timestamp::TimeDiff decisionTime = static_cast<const Timestamp::TimeDiff>(
         config().getInt64("decisionTime", 5000000)
       );
+      const UInt16 manipulatorPort =
+        static_cast<const UInt16>(config().getUInt("port.manipulator", 5698));
+      const std::string manipulatorHost =
+        config().getString("host.manipulator", "127.0.0.1");
 
-      moodycamel::BlockingConcurrentQueue<UInt32> buffer(bufferSize);
+      StreamSocket manipulatorSock;
+      try
+      {
+        manipulatorSock.connect(SocketAddress(manipulatorHost, manipulatorPort));
+      }
+      catch (const std::exception& ex)
+      {
+        logger().error(ex.what());
+        logger().error(
+          "Unable to connect to the manipulator at " +
+          manipulatorHost +
+          ":" + std::to_string(manipulatorPort)
+        );
+        return Application::EXIT_UNAVAILABLE;
+      }
 
+      NotificationQueue decisionQueue;
+      moodycamel::BlockingConcurrentQueue<UInt32> sensorDataBuffer(bufferSize);
+
+      ManipulatorCommunicator manCommunicator(
+        manipulatorSock,
+        decisionQueue
+      );
+      SensorDataConsumer sensorDataConsumer(
+        sensorDataBuffer,
+        decisionTime,
+        decisionQueue,
+        1
+      );
       TCPServer sensorServer(
-        new SensorTCPConnectionFactory(buffer),
+        new SensorTCPConnectionFactory(sensorDataBuffer),
         sensorServerPort
       );
-      SensorDataConsumer sensorDataConsumer(buffer, decisionTime);
 
-
+      manCommunicator.start();
       sensorDataConsumer.start();
       sensorServer.start();
       logger().information("TCP server for sensors is UP.");
@@ -130,10 +160,13 @@ class ControllerApp: public ServerApplication
       logger().information("Shutting down the TCP server for sensors.");
       sensorServer.stop();
       sensorDataConsumer.stop();
+      manCommunicator.stop();
 
+      manipulatorSock.close();
       /* TODO:
        * 1. Start HTTPS server that implements the rest API
        -- * 2. Start a consumer thread that processes the data coming for the sensors
+       -- * 3. Send data to a manipulator
        */
 
       return Application::EXIT_OK;

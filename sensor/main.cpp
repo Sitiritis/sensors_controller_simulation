@@ -111,7 +111,12 @@ class SensorApp: public ServerApplication
       }
       catch (const std::exception& ex)
       {
-        logger().information(ex.what());
+        logger().error(ex.what());
+        logger().error(
+          "Unable to connect to the controller at " +
+          host +
+          ":" + std::to_string(port)
+        );
         return Application::EXIT_UNAVAILABLE;
       }
 
@@ -120,7 +125,7 @@ class SensorApp: public ServerApplication
       requestSenderTimer.start(
         TimerCallback<PayloadSender>(payloadSender, &PayloadSender::onTimer)
       );
-      waitForTerminationRequest(); // TODO: react on ctrl + c with POCO::SignalHandler
+      waitForTerminationRequest();
       requestSenderTimer.stop();
 
       return Application::EXIT_OK;

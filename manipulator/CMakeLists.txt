@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(controller)
+project(manipulator)
 
 
 set(CMAKE_CXX_STANDARD 17)
@@ -8,17 +8,14 @@ set(
   SOURCES
 
   main.cpp
-  SensorTCPConnection/SensorTCPConnection.cpp SensorTCPConnection/SensorTCPConnection.h SensorTCPConnection/SensorTCPConnectionFactory.cpp SensorTCPConnection/SensorTCPConnectionFactory.h SensorDataConsumer/SensorDataConsumer.cpp SensorDataConsumer/SensorDataConsumer.h SensorDataConsumer/Decision.h SensorDataConsumer/DecisionNotification.h ManipulatorCommunicator/ManipulatorCommunicator.cpp ManipulatorCommunicator/ManipulatorCommunicator.h common/DeathPillNotification.h)
+)
 
 add_executable(
-  controller
+  manipulator
 
   ${SOURCES}
 )
 
-
-target_link_libraries(controller atomic)
-target_link_libraries(controller pthread)
 
 # Add POCO
 # POCO_PREFIX - path to built POCO library
@@ -60,15 +57,6 @@ if(NOT DEFINED POCO_LIBS)
 endif()
 
 # set the include path for the app
-target_include_directories(controller PRIVATE "${POCO_INCLUDE_DIR}")
+target_include_directories(manipulator PRIVATE "${POCO_INCLUDE_DIR}")
 # link the app against POCO
-target_link_libraries(controller "${POCO_LIBS}")
-
-
-# Add Boost
-## see https://cmake.org/cmake/help/latest/module/FindBoost.html
-#find_package(Boost REQUIRED COMPONENTS system)
-#
-#include_directories(${Boost_INCLUDE_DIR})
-## Note: a target should be already defined using 'add_executable' or 'add_library'
-#target_link_libraries(controller ${Boost_LIBRARIES})
+target_link_libraries(manipulator "${POCO_LIBS}")
