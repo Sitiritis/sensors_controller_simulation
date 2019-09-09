@@ -35,12 +35,13 @@ class SensorApp: public ServerApplication
           catch (Poco::Net::ConnectionResetException& ex)
           {
             // Lost connection to the server
-            std::cout << ex.what() << "\n";
+            std::cout << ex.what() << std::endl;
             timer.restart(0); // stop the timer
           }
           catch (std::exception& ex)
           {
-            std::cout << ex.what() << "\n";
+            std::cout << ex.what() << std::endl;
+            timer.restart(0); // stop the timer
           }
         }
 

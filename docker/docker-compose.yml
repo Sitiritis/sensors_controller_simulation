@@ -1,0 +1,108 @@
+version: "3.7"
+
+networks:
+  default:
+    driver: bridge
+
+services:
+  manipulator:
+    build:
+      context: ../
+      dockerfile: docker/builtCppPoco.Dockerfile
+      cache_from:
+        - alpine:latest
+        - manipulator
+        - controller
+        - sensor
+      args:
+        APP_NAME: manipulator
+    image: manipulator
+    container_name: manipulator
+    restart: "no"
+    env_file: .env
+    networks:
+      - default
+    ports:
+      - "5698:$MANIPULATOR_PORT"
+    entrypoint:
+      - ./manipulator
+
+      - -p
+      - "$MANIPULATOR_PORT"
+
+  controller:
+    build:
+      context: ../
+      dockerfile: docker/builtCppPoco.Dockerfile
+      cache_from:
+        - alpine:latest
+        - manipulator
+        - controller
+        - sensor
+      args:
+        APP_NAME: controller
+    depends_on:
+      - manipulator
+    image: controller
+    container_name: controller
+    restart: "no"
+    env_file: .env
+    networks:
+      - default
+    ports:
+      - "9874:$SENSORS_SERVER_PORT"
+    volumes:
+      - ./wait-for:/src/cmake-build/wait-for # wait-for script
+    working_dir: /src/cmake-build/wait-for
+    entrypoint:
+      - ./wait-for
+      - manipulator:$MANIPULATOR_PORT
+      - --
+
+      - ../controller
+
+      - --sensors-server-port
+      - "$SENSORS_SERVER_PORT"
+
+      - --manipulator-port
+      - "$MANIPULATOR_PORT"
+
+      - --manipulator-host
+      - "manipulator"
+
+      - --queue-size
+      - "2400"
+
+  sensor:
+    build:
+      context: ../
+      dockerfile: docker/builtCppPoco.Dockerfile
+      cache_from:
+        - alpine:latest
+        - manipulator
+        - controller
+        - sensor
+      args:
+        APP_NAME: sensor
+    depends_on:
+      - controller
+    image: sensor
+    restart: "no"
+    env_file: .env
+    networks:
+      - default
+    volumes:
+      - ./wait-for:/src/cmake-build/wait-for # wait-for script
+    working_dir: /src/cmake-build/wait-for
+    entrypoint:
+      - ./wait-for
+      - controller:$SENSORS_SERVER_PORT
+      - --
+
+      - ../sensor
+
+      - --port
+      - "$SENSORS_SERVER_PORT"
+
+      - --host
+      - "controller"

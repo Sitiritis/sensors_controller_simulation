@@ -11,4 +11,32 @@ Dependencies:
 - POCO
 - OpenSSL and/or libssl-dev
 
+If one runs the system in the `docker`, there is no need to bother with the dependencies.
+
 ## Docker
+
+### Docker-compose
+
+Run the simulation using `docker-compose`:
+
+```bash
+cd docker
+docker-compose up --scale sensor=8
+```
+
+This command will run the simulation via `docker-compose` with **8** sensors.
+
+To build all necessary images, one can first run `dcoker-compose build` or specify `--build` option in addition to `dcoker-compose up`.
+
+### Building an image
+
+Example of building a `docker` image:
+
+```bash
+cd docker
+docker build -t sensor:test -f builtCppPoco.Dockerfile --build-arg APP_NAME=sensor ..
+```
+
+This script will build an image with the `sensor` app.
+
+When building an image for the first time it might take some time, as it needs to build a `Poco` library first. Once the stage of building `Poco` has passed, `docker` will use its cache to build images with other apps faster.

@@ -18,14 +18,16 @@ class ManipulatorApp: public ServerApplication
     class ControllerTCPConnection: public TCPServerConnection
     {
       public:
-        explicit ControllerTCPConnection(
-          const StreamSocket& s
+        ControllerTCPConnection(
+          const StreamSocket& s,
+          const Timespan& receiveTimeout
         ):
-          TCPServerConnection(s) {}
+          TCPServerConnection(s), _receiveTimeout(receiveTimeout) {}
 
         virtual void run() override
         {
           StreamSocket sock = socket();
+          sock.setReceiveTimeout(_receiveTimeout);
 
           Timestamp::UtcTimeVal decisionTime;
           bool decision;
@@ -43,28 +45,60 @@ class ManipulatorApp: public ServerApplication
                     DateTimeFormatter::format(
                       Timestamp::fromUtcTime(decisionTime),
                       "%e.%n.%Y %H:%M:%s"
-                    ) << "\n" <<
-                  "Decision: " << decision << "\n\n";
-              }
-              else
-              {
-                break;
+                    ) << std::endl <<
+                  "Decision: " << decision << std::endl << std::endl;
               }
             }
             catch (Poco::Net::ConnectionResetException& ex)
             {
               // Lost connection to the server
-              std::cout << ex.what() << "\n";
-              std::cout << "Lost connection to the controller " << sock.peerAddress() << ".\n";
+              std::cout << ex.what() << std::endl;
+              std::cout << "Lost connection to the controller " << sock.peerAddress() << "." << std::endl;
+              break;
+            }
+            catch (TimeoutException& ex)
+            {
+              std::cout <<
+                sock.peerAddress() <<
+                " controller did not send any data within the specified timeout interval." <<
+                std::endl;
+              break;
             }
             catch (std::exception& ex)
             {
-              std::cout << ex.what() << "\n";
+              std::cout << ex.what() << std::endl;
+              break;
             }
           }
 
-          std::cout << "Finished serving " << sock.peerAddress() << " controller.\n";
+          std::cout << "Finished serving " << sock.peerAddress() << " controller." << std::endl;
         }
+
+      private:
+        const Timespan _receiveTimeout;
+    };
+
+    class ControllerTCPConnectionFactory: public TCPServerConnectionFactory
+    {
+      public:
+        explicit ControllerTCPConnectionFactory(const Timespan& receiveTimeout):
+          _receiveTimeout(receiveTimeout)
+        {}
+
+        ControllerTCPConnectionFactory(
+          const long timeoutSeconds,
+          const long timeoutMicroseconds
+        ):
+          _receiveTimeout(timeoutSeconds, timeoutMicroseconds)
+        {}
+
+        virtual TCPServerConnection* createConnection(const StreamSocket& socket) override
+        {
+          return new ControllerTCPConnection(socket, _receiveTimeout);
+        }
+
+      private:
+        const Timespan _receiveTimeout;
     };
 
   public:
@@ -79,10 +113,23 @@ class ManipulatorApp: public ServerApplication
           "Port of to listen to for the controller connection. The default is 5698.",
           false
         )
-          .argument("port-number", true)
-          .repeatable(false)
-          .validator(new IntValidator(1024, 65535))
-          .binding("port")
+        .argument("port-number", true)
+        .repeatable(false)
+        .validator(new IntValidator(1024, 65535))
+        .binding("port")
+      );
+
+      options.addOption(
+        Option(
+          "timeout",
+          "t",
+          "If controller did not send any data within the specified time, the connection is dropped. The default is 10.",
+          false
+        )
+        .argument("seconds", true)
+        .repeatable(false)
+        .validator(new IntValidator(1, INT_MAX))
+        .binding("timeout.seconds")
       );
     }
 
@@ -90,13 +137,15 @@ class ManipulatorApp: public ServerApplication
     {
       const UInt16 sensorServerPort =
         static_cast<const UInt16>(config().getUInt("port", 5698));
+      const long receiveTimeout =
+        static_cast<long>(config().getInt64("timeout.seconds", 10));
 
       TCPServer srv(
-        new TCPServerConnectionFactoryImpl<ControllerTCPConnection>(),
+        new ControllerTCPConnectionFactory(receiveTimeout, 0),
         sensorServerPort
       );
       srv.start();
-      logger().information("TCP server for manipulator is UP.");
+      logger().information("TCP server for controller is UP.");
       waitForTerminationRequest();
       logger().information("Shutting down the TCP server for manipulator.");
       srv.stop();

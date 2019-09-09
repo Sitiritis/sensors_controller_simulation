@@ -24,28 +24,24 @@ void SensorTCPConnection::run()
       {
         _buffer.enqueue(payload);
       }
-      else
-      {
-        break;
-      }
     }
     catch (NetException& ex)
     {
       // Sensor is disconnected
-      std::cout << sock.peerAddress() << " sensor has unexpectedly disconnected.\n";
+      std::cout << sock.peerAddress() << " sensor has unexpectedly disconnected." << std::endl;
       break;
     }
     catch (TimeoutException& ex)
     {
-      std::cout << sock.peerAddress() << " sensor did not send any data within 1 second.\n";
+      std::cout << sock.peerAddress() << " sensor did not send any data within 1 second." << std::endl;
       break;
     }
     catch (std::exception& ex)
     {
-      std::cout << ex.what() << "\n";
+      std::cout << ex.what() << std::endl;
       break;
     }
   }
 
-  std::cout << "Finished serving " << sock.peerAddress() << " sensor.\n";
+  std::cout << "Finished serving " << sock.peerAddress() << " sensor."  << std::endl;
 }

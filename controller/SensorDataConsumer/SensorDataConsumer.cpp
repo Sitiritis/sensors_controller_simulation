@@ -49,14 +49,14 @@ void SensorDataConsumer::runActivity()
         _decision.store(decision, std::memory_order_release);
         _decisionQueue.enqueueNotification(new DecisionNotification(decision));
         std::cout <<
-          "Mean: " << mean << "\n" <<
+          "Mean: " << mean << std::endl <<
+          "Elements in queue to process: " << _buffer.size_approx() << std::endl <<
           "Decision time: " <<
           DateTimeFormatter::format(
             Timestamp::fromUtcTime(decision.decisionTimestamp),
             "%e.%n.%Y %H:%M:%s"
-          )
-          << "\n" <<
-          "Decision: " << decision.decision << "\n\n";
+          ) << std::endl <<
+          "Decision: " << decision.decision << std::endl << std::endl;
 
         mean = 0;
         totalElements = 0;

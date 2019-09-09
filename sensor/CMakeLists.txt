@@ -48,11 +48,11 @@ if(NOT DEFINED POCO_LIBS)
   set(
     POCO_LIBS
 
-    "${POCO_LIB_DIR}/libPocoNetd.a"
-    "${POCO_LIB_DIR}/libPocoUtild.a"
-    "${POCO_LIB_DIR}/libPocoJSONd.a"
-    "${POCO_LIB_DIR}/libPocoXMLd.a"
-    "${POCO_LIB_DIR}/libPocoFoundationd.a"
+    "${POCO_LIB_DIR}/libPocoNet.so"
+    "${POCO_LIB_DIR}/libPocoUtil.so"
+    "${POCO_LIB_DIR}/libPocoJSON.so"
+    "${POCO_LIB_DIR}/libPocoXML.so"
+    "${POCO_LIB_DIR}/libPocoFoundation.so"
   )
 endif()
 
