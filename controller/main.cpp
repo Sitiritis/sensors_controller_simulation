@@ -1,5 +1,5 @@
 #include "Poco/Net/TCPServer.h"
-#include "Poco/Net/StreamSocket.h"
+#include "Poco/Net/HTTPServer.h"
 #include "Poco/Util/ServerApplication.h"
 #include "Poco/Util/IntValidator.h"
 #include "Poco/Util/RegExpValidator.h"
@@ -9,6 +9,7 @@
 #include "SensorTCPConnection/SensorTCPConnectionFactory.h"
 #include "SensorDataConsumer/SensorDataConsumer.h"
 #include "ManipulatorCommunicator/ManipulatorCommunicator.h"
+#include "HTTPSAPI/APIFactory.h"
 
 using namespace Poco;
 using namespace Poco::Util;
@@ -59,18 +60,18 @@ class ControllerApp: public ServerApplication
         .binding("port.sensorServer")
       );
 
-//      options.addOption(
-//        Option(
-//          "api-port",
-//          "a",
-//          "Port on which the controller will be providing HTTPS API. The default is 7896.",
-//          false
-//        )
-//        .argument("port", true)
-//        .repeatable(false)
-//        .validator(new IntValidator(1024, 65535))
-//        .binding("port.api")
-//      );
+      options.addOption(
+        Option(
+          "api-port",
+          "a",
+          "Port on which the controller will be providing HTTPS API. The default is 7896.",
+          false
+        )
+        .argument("port", true)
+        .repeatable(false)
+        .validator(new IntValidator(1024, 65535))
+        .binding("port.api")
+      );
 
       options.addOption(
         Option(
@@ -115,6 +116,8 @@ class ControllerApp: public ServerApplication
         static_cast<const UInt16>(config().getUInt("port.manipulator", 5698));
       const std::string manipulatorHost =
         config().getString("host.manipulator", "127.0.0.1");
+      const UInt16 apiPort =
+        static_cast<const UInt16>(config().getUInt("port.api", 7896));
 
       StreamSocket manipulatorSock;
       try
@@ -150,14 +153,18 @@ class ControllerApp: public ServerApplication
         sensorServerPort
       );
 
+      HTTPServer apiServer(new APIFactory(sensorDataConsumer), apiPort);
+
       manCommunicator.start();
       sensorDataConsumer.start();
       sensorServer.start();
+      apiServer.start();
       logger().information("TCP server for sensors is UP.");
 
       waitForTerminationRequest();
 
       logger().information("Shutting down the TCP server for sensors.");
+      apiServer.stop();
       sensorServer.stop();
       sensorDataConsumer.stop();
       manCommunicator.stop();

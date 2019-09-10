@@ -7,3 +7,6 @@
 [submodule "docker/wait-for"]
 	path = docker/wait-for
 	url = git@github.com:eficode/wait-for.git
+[submodule "controller/cereal"]
+	path = controller/cereal
+	url = git@github.com:USCiLab/cereal.git

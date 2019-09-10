@@ -8,7 +8,7 @@ set(
   SOURCES
 
   main.cpp
-  SensorTCPConnection/SensorTCPConnection.cpp SensorTCPConnection/SensorTCPConnection.h SensorTCPConnection/SensorTCPConnectionFactory.cpp SensorTCPConnection/SensorTCPConnectionFactory.h SensorDataConsumer/SensorDataConsumer.cpp SensorDataConsumer/SensorDataConsumer.h SensorDataConsumer/Decision.h SensorDataConsumer/DecisionNotification.h ManipulatorCommunicator/ManipulatorCommunicator.cpp ManipulatorCommunicator/ManipulatorCommunicator.h common/DeathPillNotification.h)
+  SensorTCPConnection/SensorTCPConnection.cpp SensorTCPConnection/SensorTCPConnection.h SensorTCPConnection/SensorTCPConnectionFactory.cpp SensorTCPConnection/SensorTCPConnectionFactory.h SensorDataConsumer/SensorDataConsumer.cpp SensorDataConsumer/SensorDataConsumer.h SensorDataConsumer/Decision.h SensorDataConsumer/DecisionNotification.h ManipulatorCommunicator/ManipulatorCommunicator.cpp ManipulatorCommunicator/ManipulatorCommunicator.h common/DeathPillNotification.h HTTPSAPI/APIFactory.cpp HTTPSAPI/APIFactory.h HTTPSAPI/DecisionHandler.cpp HTTPSAPI/DecisionHandler.h)
 
 add_executable(
   controller
@@ -64,6 +64,9 @@ target_include_directories(controller PRIVATE "${POCO_INCLUDE_DIR}")
 # link the app against POCO
 target_link_libraries(controller "${POCO_LIBS}")
 
+
+# Add cereal to include directories
+include_directories(./cereal/include)
 
 # Add Boost
 ## see https://cmake.org/cmake/help/latest/module/FindBoost.html
