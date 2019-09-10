@@ -1,0 +1,53 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Controller status</title>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='fecha/src/fecha.js') }}"></script>
+</head>
+<body>
+  <button id="update-status-button">Update status</button>
+  <p>Controller decisions log:</p>
+  <div id="status-log"></div>
+
+  <script>
+    $(document).ready(
+      $("#update-status-button").click(function() {
+        $.ajax({
+          method: "GET",
+          url: "{{ url_for('.controller_status') }}",
+          statusCode: {
+            503: function() {
+              $("#status-log").prepend(
+                $("<p></p>").attr("style", "color:red;").text(
+                  fecha.format(Date.now(), "[[]HH:mm:ss DD.MM.YYYY[]] ") +
+                  "The controller is currently unavailable"
+                )
+              )
+            }
+          },
+          dataType: "json"
+        })
+        .done(function (data) {
+          var newEntry = $("<p></p>");
+          newEntry.append(fecha.format(Date.now(), "[[]HH:mm:ss DD.MM.YYYY[]] "));
+          newEntry.append("Decision time: ");
+          newEntry.append($("<b></b>").text(
+            fecha.format(
+              fecha.parse(data.datetime, "YYYYMMDDTHHmm"),
+              "HH:mm DD.MM.YYYY"
+            )
+          ));
+          newEntry.append("; Decision: ");
+          newEntry.append($("<b></b>")
+          .attr("style", (data.status === "up") ? "color:green;" : "color:red")
+          .text(data.status));
+
+          $("#status-log").prepend(newEntry);
+        })
+      })
+    )
+  </script>
+
+</body>
+</html>

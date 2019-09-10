@@ -10,3 +10,6 @@
 [submodule "controller/cereal"]
 	path = controller/cereal
 	url = git@github.com:USCiLab/cereal.git
+[submodule "server/static/fecha"]
+	path = server/static/fecha
+	url = git@github.com:taylorhakes/fecha.git
