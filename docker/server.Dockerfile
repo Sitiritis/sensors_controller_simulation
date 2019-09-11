@@ -1,7 +1,7 @@
 FROM python:alpine
 
 # Install the required dependencies
-COPY server /app
+COPY ./ /app
 
 # Install librarium dependencies
 WORKDIR /app

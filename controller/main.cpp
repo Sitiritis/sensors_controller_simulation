@@ -62,6 +62,19 @@ class ControllerApp: public ServerApplication
 
       options.addOption(
         Option(
+          "sensor-threads",
+          "c",
+          "Size of thread pool created to handle sensors. The default is 8.",
+          false
+        )
+        .argument("number", true)
+        .repeatable(false)
+        .validator(new IntValidator(1, 64))
+        .binding("sensorServer.threadPoolSize")
+      );
+
+      options.addOption(
+        Option(
           "api-port",
           "a",
           "Port on which the controller will be providing HTTPS API. The default is 7896.",
@@ -71,6 +84,19 @@ class ControllerApp: public ServerApplication
         .repeatable(false)
         .validator(new IntValidator(1024, 65535))
         .binding("port.api")
+      );
+
+      options.addOption(
+        Option(
+          "api-threads",
+          "r",
+          "Size of thread pool created to handle api requests. The default is 2.",
+          false
+        )
+        .argument("number", true)
+        .repeatable(false)
+        .validator(new IntValidator(1, 64))
+        .binding("api.threadPoolSize")
       );
 
       options.addOption(
@@ -118,6 +144,10 @@ class ControllerApp: public ServerApplication
         config().getString("host.manipulator", "127.0.0.1");
       const UInt16 apiPort =
         static_cast<const UInt16>(config().getUInt("port.api", 7896));
+      const int numSensorThreads =
+        config().getInt("sensorServer.threadPoolSize", 8);
+      const int numApiThreads =
+        config().getInt("api.threadPoolSize", 2);
 
       StreamSocket manipulatorSock;
       try
@@ -148,12 +178,21 @@ class ControllerApp: public ServerApplication
         decisionQueue,
         1
       );
+      ThreadPool sensorServerThreadPool("sensor_server_thread_pool", 1, numSensorThreads);
+      const ServerSocket sensorServerSock(sensorServerPort);
       TCPServer sensorServer(
         new SensorTCPConnectionFactory(sensorDataBuffer),
-        sensorServerPort
+        sensorServerThreadPool,
+        sensorServerSock
       );
-
-      HTTPServer apiServer(new APIFactory(sensorDataConsumer), apiPort);
+      ThreadPool apiServerThreadPool("api_server_thread_pool", 1, numApiThreads);
+      const ServerSocket apiServerSock(apiPort);
+      HTTPServer apiServer(
+        new APIFactory(sensorDataConsumer),
+        apiServerThreadPool,
+        apiServerSock,
+        new HTTPServerParams()
+      );
 
       manCommunicator.start();
       sensorDataConsumer.start();
@@ -170,11 +209,6 @@ class ControllerApp: public ServerApplication
       manCommunicator.stop();
 
       manipulatorSock.close();
-      /* TODO:
-       * 1. Start HTTPS server that implements the rest API
-       -- * 2. Start a consumer thread that processes the data coming for the sensors
-       -- * 3. Send data to a manipulator
-       */
 
       return Application::EXIT_OK;
     }

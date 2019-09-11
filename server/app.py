@@ -10,7 +10,7 @@ import requests as r
 
 
 def request_status_from_controller(endpoint: str) -> dict:
-  return r.get(endpoint).json()
+  return r.get(endpoint, verify=False).json()
 
 
 @app.route("/", methods=["GET"])

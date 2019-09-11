@@ -51,7 +51,8 @@ services:
       - default
     ports:
       - "9874:$SENSORS_SERVER_PORT"
-      - "7896:$CONTROLLER_API_PORT"
+    expose:
+      - "$CONTROLLER_API_PORT"
     volumes:
       - ./wait-for:/src/cmake-build/wait-for # wait-for script
     working_dir: /src/cmake-build/wait-for
@@ -110,8 +111,8 @@ services:
 
   server:
     build:
-      context: ../
-      dockerfile: docker/server.Dockerfile
+      context: ../server
+      dockerfile: ../docker/server.Dockerfile
       cache_from:
         - server
     depends_on:
@@ -123,7 +124,7 @@ services:
     environment:
       CONTROLLER_API_PROTOCOL: "$CONTROLLER_API_PROTOCOL"
       CONTROLLER_API_HOST_ADDRESS: "$CONTROLLER_API_HOST_ADDRESS"
-      CONTROLLER_API_HOST_PORT: "$CONTROLLER_API_PORT"
+      CONTROLLER_API_HOST_PORT: "$PROXY_PORT"
     networks:
       - default
     ports:
@@ -132,9 +133,9 @@ services:
       - ./wait-for:/app/wait-for # wait-for script
     working_dir: /app
     entrypoint:
-      # - ./wait-for/wait-for
-      # - controller:$CONTROLLER_API_PORT
-      # - --
+      - ./wait-for/wait-for
+      - $CONTROLLER_API_HOST_ADDRESS:$PROXY_PORT
+      - --
 
       - "gunicorn"
 
@@ -145,3 +146,25 @@ services:
       - "0.0.0.0:$SAMPLE_SERVER_PORT"
 
       - "app:app"
+
+  httpsproxy:
+    build:
+      context: ../
+      dockerfile: docker/httpsproxy.Dockerfile
+      cache_from:
+        - nginx
+        - httpsproxy
+    depends_on:
+      - controller
+    image: httpsproxy
+    container_name: httpsproxy
+    restart: "no"
+    networks:
+      - default
+    expose:
+      - "$PROXY_PORT"
+    ports:
+      - "5001:$PROXY_PORT"
+    volumes:
+      - ../nginx/config:/etc/nginx
+      # - ../nginx/certs:/certs
