@@ -26,6 +26,8 @@ docker-compose up --scale sensor=8
 
 This command will run the simulation via `docker-compose` with **8** sensors.
 
+One will be able to observe the console output of both a `manipulator` and a `controller` in the logs. In addition a flask application is available at `127.0.0.1:5000` to send requests to the controller to retrieve its decisions.
+
 To build all necessary images, one can first run `dcoker-compose build` or specify `--build` option in addition to `dcoker-compose up`.
 
 ### Building an image

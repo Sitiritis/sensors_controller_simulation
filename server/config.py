@@ -7,7 +7,7 @@ class FlaskConfig(object):
   CONTROLLER_API_HOST_ADDRESS = \
     os.environ.get("CONTROLLER_API_HOST_ADDRESS", "localhost")
   CONTROLLER_API_HOST_PORT = \
-    os.environ.get("CONTROLLER_API_PROTOCOL", "7896")
+    os.environ.get("CONTROLLER_API_HOST_PORT", "7896")
   CONTROLLER_API_ENDPOINT = \
     CONTROLLER_API_PROTOCOL + "://" +\
     CONTROLLER_API_HOST_ADDRESS + ":" +\

@@ -51,6 +51,7 @@ services:
       - default
     ports:
       - "9874:$SENSORS_SERVER_PORT"
+      - "7896:$CONTROLLER_API_PORT"
     volumes:
       - ./wait-for:/src/cmake-build/wait-for # wait-for script
     working_dir: /src/cmake-build/wait-for
@@ -106,3 +107,41 @@ services:
 
       - --host
       - "controller"
+
+  server:
+    build:
+      context: ../
+      dockerfile: docker/server.Dockerfile
+      cache_from:
+        - server
+    depends_on:
+      - controller
+    image: server
+    container_name: server
+    restart: "no"
+    env_file: .env
+    environment:
+      CONTROLLER_API_PROTOCOL: "$CONTROLLER_API_PROTOCOL"
+      CONTROLLER_API_HOST_ADDRESS: "$CONTROLLER_API_HOST_ADDRESS"
+      CONTROLLER_API_HOST_PORT: "$CONTROLLER_API_PORT"
+    networks:
+      - default
+    ports:
+      - "5000:$SAMPLE_SERVER_PORT"
+    volumes:
+      - ./wait-for:/app/wait-for # wait-for script
+    working_dir: /app
+    entrypoint:
+      # - ./wait-for/wait-for
+      # - controller:$CONTROLLER_API_PORT
+      # - --
+
+      - "gunicorn"
+
+      - -w
+      - "1"
+
+      - -b
+      - "0.0.0.0:$SAMPLE_SERVER_PORT"
+
+      - "app:app"
