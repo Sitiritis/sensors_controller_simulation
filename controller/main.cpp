@@ -175,8 +175,7 @@ class ControllerApp: public ServerApplication
       SensorDataConsumer sensorDataConsumer(
         sensorDataBuffer,
         decisionTime,
-        decisionQueue,
-        1
+        decisionQueue
       );
       ThreadPool sensorServerThreadPool("sensor_server_thread_pool", 1, numSensorThreads);
       const ServerSocket sensorServerSock(sensorServerPort);

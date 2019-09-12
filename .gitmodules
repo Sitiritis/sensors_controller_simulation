@@ -12,4 +12,4 @@
 	url = git@github.com:USCiLab/cereal.git
 [submodule "server/static/fecha"]
 	path = server/static/fecha
-	url = git@github.com:taylorhakes/fecha.git
+	url = git@github.com:Sitiritis/fecha.git

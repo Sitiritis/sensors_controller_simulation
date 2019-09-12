@@ -17,15 +17,13 @@ class SensorDataConsumer
     SensorDataConsumer(
       moodycamel::BlockingConcurrentQueue<UInt32>& buffer,
       const Timestamp::TimeDiff decisionTime,
-      NotificationQueue& decisionQueue,
-      const unsigned short numberWorkers
+      NotificationQueue& decisionQueue
     ):
       _activity(this, &SensorDataConsumer::runActivity),
       _buffer(buffer),
       _decision(Decision(Timestamp().utcTime(), false)),
       _decisionTime(decisionTime),
-      _decisionQueue(decisionQueue),
-      _numberWorkers(numberWorkers)
+      _decisionQueue(decisionQueue)
     {}
 
     void start();
@@ -42,7 +40,6 @@ class SensorDataConsumer
     std::atomic<const Decision> _decision;
     const Timestamp::TimeDiff _decisionTime;
     NotificationQueue& _decisionQueue;
-    const unsigned short _numberWorkers;
 };
 
 #endif //SENSORS_CONTROLLER_SIMULATION_SENSORDATACONSUMER_H

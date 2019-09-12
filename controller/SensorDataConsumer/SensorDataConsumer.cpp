@@ -65,8 +65,5 @@ void SensorDataConsumer::runActivity()
     }
   }
 
-  for (int i = 0; i < _numberWorkers; ++i)
-  {
-    _decisionQueue.enqueueNotification(new DeathPillNotification());
-  }
+  _decisionQueue.enqueueNotification(new DeathPillNotification());
 }
