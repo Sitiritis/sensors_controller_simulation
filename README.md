@@ -6,14 +6,14 @@ This project represents a simulation, where _sensors_ send data to a _controller
 >
 > The project makes use of submodules.
 >
-> Add `--recurse-submodules` to the `git clone`.
->
-> Or pull them manually after clonning the repository, by running the following commands:
+> Pull them manually after clonning the repository, by running the following commands:
 >
 > ```bash
 > git submodule init
 > git submodule update
 > ```
+> 
+> Or add `--recurse-submodules` to the `git clone` (this option will clone all submodules recursively, so the size of the resulting cloned repository might be big).
 >
 
 # Running the app
